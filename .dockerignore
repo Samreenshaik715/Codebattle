@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+.git
+.env
+.env.*
+!.env.example
+coverage
+*.log
+.vscode
+.idea
+docker-data
+apps/backend/prisma/migrations

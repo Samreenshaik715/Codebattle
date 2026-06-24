@@ -1,0 +1,48 @@
+{
+  "name": "codebattle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CodeBattle - Competitive coding platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev -w @codebattle/frontend\" \"npm run dev -w @codebattle/backend\"",
+    "dev:frontend": "npm run dev -w @codebattle/frontend",
+    "dev:backend": "npm run dev -w @codebattle/backend",
+    "build": "npm run build -w @codebattle/backend && npm run build -w @codebattle/frontend",
+    "build:frontend": "npm run build -w @codebattle/frontend",
+    "build:backend": "npm run build -w @codebattle/backend",
+    "lint": "npm run lint -w @codebattle/frontend && npm run lint -w @codebattle/backend",
+    "lint:fix": "npm run lint:fix -w @codebattle/frontend && npm run lint:fix -w @codebattle/backend",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,html}\"",
+    "db:generate": "npm run db:generate -w @codebattle/backend",
+    "db:migrate": "npm run db:migrate -w @codebattle/backend",
+    "db:push": "npm run db:push -w @codebattle/backend",
+    "db:studio": "npm run db:studio -w @codebattle/backend",
+    "build:executor": "docker build -f docker/executor.Dockerfile -t codebattle/executor:latest .",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "setup": "npm run db:generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.12",
+    "typescript-eslint": "^8.33.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

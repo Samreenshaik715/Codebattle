@@ -1,0 +1,108 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: codebattle-postgres
+    restart: unless-stopped
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-codebattle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-codebattle_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-codebattle}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-codebattle} -d ${POSTGRES_DB:-codebattle}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - codebattle-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: codebattle-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - codebattle-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: development
+    container_name: codebattle-backend
+    restart: unless-stopped
+    ports:
+      - '${BACKEND_PORT:-4000}:4000'
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-codebattle}:${POSTGRES_PASSWORD:-codebattle_secret}@postgres:5432/${POSTGRES_DB:-codebattle}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-secure-random-string-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-to-another-secure-random-string}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    volumes:
+      - ./apps/backend/src:/app/apps/backend/src
+      - ./apps/backend/prisma:/app/apps/backend/prisma
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - codebattle-network
+    profiles:
+      - full
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      target: development
+    container_name: codebattle-frontend
+    restart: unless-stopped
+    ports:
+      - '${FRONTEND_PORT:-5173}:5173'
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-4000}/api
+      VITE_SOCKET_URL: http://localhost:${BACKEND_PORT:-4000}
+    volumes:
+      - ./apps/frontend/src:/app/apps/frontend/src
+      - ./apps/frontend/public:/app/apps/frontend/public
+      - ./apps/frontend/index.html:/app/apps/frontend/index.html
+    depends_on:
+      - backend
+    networks:
+      - codebattle-network
+    profiles:
+      - full
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  codebattle-network:
+    driver: bridge
